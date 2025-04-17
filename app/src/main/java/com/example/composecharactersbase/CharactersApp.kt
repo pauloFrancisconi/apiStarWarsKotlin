@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +37,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.example.composecharactersbase.network.Film
+import com.example.composecharactersbase.network.StarWarsApiService
 
 @Preview
 @Composable
@@ -47,111 +50,84 @@ fun CharacterApp() {
 
 @Composable
 fun CharacterListScreen() {
-    // Lista de personagens mockados (dados fictícios para teste).
-    val characters = listOf(
-        CharacterMock(
-            name = "Rick Sanchez",
-            status = "Alive",
-            species = "Human",
-            imageUrl = "https://rickandmortyapi.com/api/character/avatar/1.jpeg"
-        ),
-        CharacterMock(
-            name = "Morty Smith",
-            status = "Alive",
-            species = "Human",
-            imageUrl = "https://rickandmortyapi.com/api/character/avatar/2.jpeg"
-        ),
-        CharacterMock(
-            name = "Summer Smith",
-            status = "Alive",
-            species = "Human",
-            imageUrl = "https://rickandmortyapi.com/api/character/avatar/3.jpeg"
-        )
-    )
+    var films by remember { mutableStateOf<List<Film>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    // LazyColumn é uma lista otimizada para exibir grandes quantidades de dados.
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize() // Preenche todo o espaço disponível.
-            .padding(16.dp), // Adiciona um espaçamento interno de 16dp.
-        verticalArrangement = Arrangement.spacedBy(12.dp) // Espaçamento entre os itens da lista.
-    ) {
-        // Para cada personagem na lista, cria um item na LazyColumn.
-        items(characters) { character ->
-            CharacterCard(character) // Exibe o cartão do personagem.
+    LaunchedEffect(Unit) {
+        try {
+            val api = StarWarsApiService.create()
+            val response = api.getFilms()
+            films = response.results
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Carregando filmes...")
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(films) { film ->
+                FilmCard(film)
+            }
         }
     }
 }
 
+
+
 @Composable
-fun CharacterCard(character: CharacterMock) {
-    // Estado que controla se o personagem é favorito ou não.
+fun FilmCard(film: Film) {
     var isFavorite by remember { mutableStateOf(false) }
 
-    // Card é um componente que cria um contêiner com elevação e bordas arredondadas.
     Card(
         modifier = Modifier
-            .fillMaxWidth() // Preenche toda a largura disponível.
-            .height(140.dp), // Define a altura do cartão.
-        shape = RoundedCornerShape(16.dp), // Define bordas arredondadas.
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp) // Define a elevação do cartão.
+            .fillMaxWidth()
+            .height(140.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        // Row organiza os elementos horizontalmente.
         Row(
             modifier = Modifier
-                .fillMaxSize() // Preenche todo o espaço disponível no cartão.
-                .padding(12.dp), // Adiciona um espaçamento interno de 12dp.
-            verticalAlignment = Alignment.CenterVertically // Alinha os elementos verticalmente ao centro.
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Exibe a imagem do personagem.
-            Image(
-                painter = rememberAsyncImagePainter(model = character.imageUrl), // Carrega a imagem da URL.
-                contentDescription = "Character image", // Descrição da imagem para acessibilidade.
-                modifier = Modifier
-                    .size(100.dp) // Define o tamanho da imagem.
-                    .clip(RoundedCornerShape(12.dp)) // Adiciona bordas arredondadas à imagem.
-            )
-
-            // Espaçamento horizontal entre a imagem e o texto.
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Coluna para organizar os textos verticalmente.
             Column(
                 modifier = Modifier
-                    .weight(1f) // Faz com que a coluna ocupe o espaço restante.
-                    .fillMaxHeight(), // Preenche toda a altura disponível.
-                verticalArrangement = Arrangement.Center // Alinha os textos verticalmente ao centro.
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.Center
             ) {
-                // Exibe o nome do personagem.
-                Text(text = character.name, style = MaterialTheme.typography.titleMedium)
-                // Exibe o status do personagem.
-                Text(text = "Status: ${character.status}")
-                // Exibe a espécie do personagem.
-                Text(text = "Species: ${character.species}")
+                Text(text = film.title, style = MaterialTheme.typography.titleMedium)
+                Text(text = "Diretor: ${film.director}")
+                Text(text = "Produtor: ${film.producer}")
+                Text(text = "Lançamento: ${film.release_date}")
             }
 
-            // Botão para marcar/desmarcar o personagem como favorito.
-            IconButton(
-                onClick = {
-                    isFavorite = !isFavorite // Alterna o estado de favorito.
-                    // TODO: Salvar ou remover dos favoritos usando SharedPreferences.
-                }
-            ) {
-                // Ícone que muda dependendo do estado de favorito.
+            IconButton(onClick = { isFavorite = !isFavorite }) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                    contentDescription = "Favorito", // Descrição do ícone para acessibilidade.
-                    tint = if (isFavorite) Color.Yellow else Color.Gray // Cor do ícone.
+                    contentDescription = "Favorito",
+                    tint = if (isFavorite) Color.Yellow else Color.Gray
                 )
             }
         }
     }
 }
 
-// Classe de dados que representa um personagem.
-data class CharacterMock(
-    val name: String, // Nome do personagem.
-    val status: String, // Status do personagem (ex.: Vivo, Morto).
-    val species: String, // Espécie do personagem (ex.: Humano, Alien).
-    val imageUrl: String // URL da imagem do personagem.
-)
+
+
