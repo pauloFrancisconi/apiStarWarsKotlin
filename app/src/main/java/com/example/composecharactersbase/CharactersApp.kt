@@ -1,5 +1,6 @@
 package com.example.composecharactersbase
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,7 @@ fun CharacterListScreen() {
             films = response.results
         } catch (e: Exception) {
             e.printStackTrace()
+            Log.e("API_ERROR", "Erro ao carregar filmes: ${e.message}", e)
         } finally {
             isLoading = false
         }
@@ -82,6 +84,7 @@ fun CharacterListScreen() {
         ) {
             items(films) { film ->
                 FilmCard(film)
+                Log.d("API_RESULT", "Total de filmes: ${films.size}")
             }
         }
     }
